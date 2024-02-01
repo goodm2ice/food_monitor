@@ -18,6 +18,14 @@ const AMR_K = {
     [Activity.VeryActive]: 1.9,
 }
 
+const PFC_PERCENT = {
+    [WeightGoal.Loss]: { proteins: 0.5, fats: 0.3, carbohydrates: 0.2 },
+    [WeightGoal.Maintenance]: { proteins: 0.4, fats: 0.3, carbohydrates: 0.3 },
+    [WeightGoal.Gain]: { proteins: 0.3, fats: 0.1, carbohydrates: 0.6 },
+}
+
+const PFC_G_CALORIES = { protein: 4.4, carbohydrate: 4.1, fat: 9.4 }
+
 const FAT_KG_CALORIE = 7700
 
 const makeButton = (value: string, label: string, icon?: string) => ({ value, label, icon })
@@ -46,11 +54,15 @@ export const StartScreen = memo<StartScreenProps>(({ navigation }) => {
 
     const [activity, setActivity] = useState<Activity>(Activity.LightlyActive)
     const [amr, setAmr] = useState<number>()
-    
+
     const [goal, setGoal] = useState<WeightGoal>(WeightGoal.Maintenance)
     const [weightChange, setWeightChange] = useState<number>()
     const [goalDays, setGoalDays] = useState<number>()
     const [cmi, setCmi] = useState<number>()
+
+    const [dailyProteins, setDailyProteins] = useState<number>()
+    const [dailyFats, setDailyFats] = useState<number>()
+    const [dailyCarbohydrates, setDailyCarbohydrates] = useState<number>()
 
     const [fillingError, setFillingError] = useState<string | null>(null)
 
@@ -82,6 +94,12 @@ export const StartScreen = memo<StartScreenProps>(({ navigation }) => {
         }
         if (typeof cmi === 'undefined')
             fillingErrorList.push('СНК не указано')
+        if (typeof dailyProteins === 'undefined')
+            fillingErrorList.push('Суточный белок не указан')
+        if (typeof dailyFats === 'undefined')
+            fillingErrorList.push('Суточный жир не указан')
+        if (typeof dailyCarbohydrates === 'undefined')
+            fillingErrorList.push('Суточные углеводы не указан')
 
         if (fillingErrorList.length > 1) {
             setFillingError(['При попытке сохранить данные возникли следующие ошибки:', ...fillingErrorList].join('\n* '))
@@ -136,6 +154,15 @@ export const StartScreen = memo<StartScreenProps>(({ navigation }) => {
     }, [weight, height, sex])
 
     useEffect(() => {
+        if (typeof weightChange === 'undefined') return
+
+        if (goal === WeightGoal.Loss)
+            setGoalDays(Math.ceil(weightChange * FAT_KG_CALORIE / 1000))
+        else if (goal === WeightGoal.Gain)
+            setGoalDays(Math.ceil(weightChange * FAT_KG_CALORIE / 4000))
+    }, [goal, weightChange])
+
+    useEffect(() => {
         if (goal === WeightGoal.Maintenance) {
             setCmi(amr)
             return
@@ -157,13 +184,12 @@ export const StartScreen = memo<StartScreenProps>(({ navigation }) => {
     }, [weight, weightChange, goalDays, amr, goal])
 
     useEffect(() => {
-        if (typeof weightChange === 'undefined') return
+        if (typeof cmi === 'undefined') return
 
-        if (goal === WeightGoal.Loss)
-            setGoalDays(Math.ceil(weightChange * FAT_KG_CALORIE / 1000))
-        else if (goal === WeightGoal.Gain)
-            setGoalDays(Math.ceil(weightChange * FAT_KG_CALORIE / 4000))
-    }, [goal, weightChange])
+        setDailyProteins(cmi * PFC_PERCENT[goal].proteins / PFC_G_CALORIES.protein)
+        setDailyFats(cmi * PFC_PERCENT[goal].fats / PFC_G_CALORIES.fat)
+        setDailyCarbohydrates(cmi * PFC_PERCENT[goal].carbohydrates / PFC_G_CALORIES.carbohydrate)
+    }, [goal, cmi])
 
     return (
         <ScrollView contentContainerStyle={styles.page}>
@@ -244,10 +270,34 @@ export const StartScreen = memo<StartScreenProps>(({ navigation }) => {
             <Divider style={styles.space} />
             <NumericInput
                 label={'Суточная норма калорий'}
-                right={<TextInput.Affix text={'кКал'} />}
+                affixText={'кКал'}
                 min={0}
                 value={cmi}
                 onChange={setCmi}
+                required
+            />
+            <NumericInput
+                label={'Суточная норма белка'}
+                affixText={'г'}
+                min={0}
+                value={dailyProteins}
+                onChange={setDailyProteins}
+                required
+            />
+            <NumericInput
+                label={'Суточная норма жиров'}
+                affixText={'г'}
+                min={0}
+                value={dailyFats}
+                onChange={setDailyFats}
+                required
+            />
+            <NumericInput
+                label={'Суточная норма углеводов'}
+                affixText={'г'}
+                min={0}
+                value={dailyCarbohydrates}
+                onChange={setDailyCarbohydrates}
                 required
             />
             <Button
