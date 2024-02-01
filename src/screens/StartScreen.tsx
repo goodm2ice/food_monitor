@@ -44,6 +44,14 @@ const GOAL_BUTTONS = [
     makeButton(WeightGoal.Gain, 'Набор'),
 ]
 
+const DAILY_WATER_K = {
+    [Activity.Sedentary]: 0.3,
+    [Activity.LightlyActive]: 0.325,
+    [Activity.ModeratelyActive]: 0.35,
+    [Activity.Active]: 0.4,
+    [Activity.VeryActive]: 0.4,
+}
+
 export const StartScreen = memo<StartScreenProps>(({ navigation }) => {
     const [verbose, setVerbose] = useState<boolean>(false)
 
@@ -63,6 +71,7 @@ export const StartScreen = memo<StartScreenProps>(({ navigation }) => {
     const [dailyProteins, setDailyProteins] = useState<number>()
     const [dailyFats, setDailyFats] = useState<number>()
     const [dailyCarbohydrates, setDailyCarbohydrates] = useState<number>()
+    const [dailyWater, setDailyWater] = useState<number>()
 
     const [fillingError, setFillingError] = useState<string | null>(null)
 
@@ -135,6 +144,12 @@ export const StartScreen = memo<StartScreenProps>(({ navigation }) => {
     useEffect(() => {
         setAmr(typeof bmr !== 'undefined' ? bmr * AMR_K[activity] : undefined)
     }, [bmr, activity])
+
+    useEffect(() => {
+        if (typeof weight === 'undefined') return
+
+        setDailyWater(weight * DAILY_WATER_K[activity])
+    }, [activity, weight])
 
     useEffect(() => {
         if (typeof height === 'undefined' || typeof weight === 'undefined') return
@@ -299,6 +314,15 @@ export const StartScreen = memo<StartScreenProps>(({ navigation }) => {
                 value={dailyCarbohydrates}
                 onChange={setDailyCarbohydrates}
                 required
+            />
+            <NumericInput
+                label={'Суточная норма воды'}
+                affixText={'л'}
+                min={0}
+                value={dailyWater}
+                onChange={setDailyWater}
+                required
+                fixed={2}
             />
             <Button
                 style={{ marginTop: 10 }}
